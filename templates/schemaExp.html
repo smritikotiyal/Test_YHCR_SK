@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<style>
+
+.node circle {
+  fill: #fff;
+  stroke: steelblue;
+  stroke-width: 3px;
+}
+
+.node text {
+  font: 12px sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 2px;
+}
+
+.links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font-family: sans-serif;
+  font-size: 12px;
+}
+
+
+</style>
+
+<body>
+
+<!-- load the d3.js library -->	
+<script src="https://d3js.org/d3.v4.min.js "></script>
+<script src="https://apis.google.com/js/client.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script src="../static/data/schema.js"></script>
+<script>
+
+  var tables = {}; 
+  var dataTypes = {};
+  var columns = {}
+
+    // BIGQUERY PROJECT ID AND CLIENT ID
+  /*var project_id = 'yhcr-prd-phm-bia-core';
+  var client_id = '605902584318.apps.googleusercontent.com';
+
+  var config = {
+    'client_id': client_id,
+    'scope': 'https://www.googleapis.com/auth/bigquery'
+  };
+ */
+  
+
+  schema.forEach(function(entry){
+    var tbl_name = entry['table_name'];
+    //var col_name = entry['column_name'];
+    tables[tbl_name] = 1;
+    dataTypes[entry['data_type']] = 1;
+    // if(!columns.hasOwnProperty(col_name)) {
+    //   columns[col_name] = [tbl_name]
+      
+    // }
+    // columns[col_name].push(tbl_name);
+
+    
+  });
+  console.log(tables);
+  //console.log(columns);
+
+  // sort tables alphabetically
+  var arrTabs = [];
+   for (key in tables) {
+        if (tables.hasOwnProperty(key))
+            arrTabs.push(key);
+
+    }
+
+    arrTabs.sort();
+
+
+
+  var typeArr = Object.keys(dataTypes);
+  //var color = d3.scaleOrdinal(d3.schemeAccent).domain([0,typeArr.length]);
+  var colors = d3.scaleQuantize()
+    .domain([0,10])
+    .range(["#5E4FA2", "#3288BD", "#66C2A5", "#ABDDA4", "#E6F598", 
+    "#FFFFBF", "#FEE08B", "#FDAE61", "#F46D43", "#D53E4F"]);
+
+  
+
+  var treeData = {
+    "name" : schema[0]['table_schema'],
+    "children": [ ]
+  };
+
+  for(var key=0; key < arrTabs.length; key++){
+    treeData['children'].push({"name":arrTabs[key], "children":[]});
+  }
+
+  schema.forEach(function(entry){
+    treeData['children'].forEach(function(child){
+        if(child['name'] === entry['table_name']){
+          child['children'].push({'name': entry['column_name'], 'children':[], 'dataType': entry['data_type']});
+        }
+    });
+  });
+  
+
+// Set the dimensions and margins of the diagram
+var margin = {top: 100, right: 90, bottom: 100, left: 90},
+    width = 1200 - margin.left - margin.right,
+    height = 1000 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+// appends a 'group' element to 'svg'
+// moves the 'group' element to the top left margin
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.right + margin.left)
+    .attr("height", height + margin.top + margin.bottom)
+    .attr("clicked", false)       // introduced this new attr to track clicks
+  .append("g")
+    .attr("transform", "translate("
+          + margin.left + "," + margin.top + ")");
+
+for(var i=0; i < typeArr.length; i++)
+    {
+      var legend = svg.append('g');
+        legend.append('rect')
+          .attr("class", "legend")
+          .attr('x', -45)
+          .attr('y', (i*30))
+          .attr('height', 10)
+          .attr('width', 10)
+          .style('stroke','none')
+          .style('fill', colors(i));
+
+        legend.append('text')
+              .attr("dy", ".35em")
+              .attr('x', -25)
+              .attr('y', (i*30)+5)
+              .text(typeArr[i]);
+
+    }
+
+
+var i = 0,
+    duration = 750,
+    root;
+
+// declares a tree layout and assigns the size
+var treemap = d3.tree().size([height, width]);
+
+// Assigns parent, children, height, depth
+root = d3.hierarchy(treeData, function(d) { return d.children; });
+root.x0 = height / 2;
+root.y0 = 0;
+
+// Collapse after the second level
+root.children.forEach(collapse);
+
+update(root);
+
+// Collapse the node and all it's children
+function collapse(d) {
+  if(d.children) {
+    d._children = d.children
+    d._children.forEach(collapse)
+    d.children = null
+  }
+}
+
+function buildFieldGraph(fieldname){
+  var graph = {"nodes": [], 
+              "links": []};
+  var fieldInserted = 0; // insert a node for the field name only once;
+   schema.forEach(function(entry){
+      if(entry['column_name'] === fieldname ){
+        // insert node for field name if not already inserted
+        if(!fieldInserted){
+                  graph["nodes"].push({"id": fieldname , "group": 1});
+                  fieldInserted = 1; 
+                }
+        // insert a node for the table name
+        graph["nodes"].push({"id": entry['table_name'], "group": 2});
+
+        // insert link between the two
+        graph["links"].push({"source": fieldname, "target": entry['table_name'], "value": 10});
+
+      }
+   });
+   console.log(graph);
+   return graph;
+}
+function appendGraph(detailG, graph, dataType){
+  var svg = detailG.append("svg"), //d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+var simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(70))
+    .force("charge", d3.forceManyBody())
+    .force("center", d3.forceCenter(width / 2, height / 2));
+
+/*var graph = {
+  "nodes": [
+    {"id": "Myriel", "group": 1},
+    {"id": "Napoleon", "group": 1},
+    {"id": "Valjean", "group": 3},
+   
+  ],
+  "links": [
+    {"source": "Napoleon", "target": "Myriel", "value": 9},
+    {"source": "Napoleon", "target": "Valjean", "value": 16},
+    {"source": "Myriel", "target": "Valjean", "value": 36}
+   
+  ]
+};*/ 
+  
+  var link = svg.append("g")
+      .attr("class", "links")
+      .attr("transform", function(d) {
+          return "translate(" + ( 200) + "," + (200) + ")";
+        })
+    .selectAll("line")
+    .data(graph.links)
+    .enter().append("line")
+      .attr("stroke-width", function(d) { return Math.sqrt(d.value); })
+      .attr('stroke', 'red');
+
+    
+  var node = svg.append("g")
+      .attr("class", "nodes")
+    .selectAll("g")
+    .data(graph.nodes)
+    .enter().append("g")
+    
+  var circles = node.append("circle")
+      .attr("r", 10)
+      .attr("fill", function(d) { 
+        if(d.group === 1)
+          return  colors(typeArr.indexOf(dataType));
+        return "grey"; })
+      .style("stroke", "grey")
+      .style("stroke-width", 5)
+      .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));
+
+  var lables = node.append("text")
+      .text(function(d) {
+        return d.id;
+      })
+      .attr('x', 6)
+      .attr('y', 3);
+
+  node.append("title")
+      .text(function(d) { return d.id; });
+
+  simulation
+      .nodes(graph.nodes)
+      .on("tick", ticked);
+
+  simulation.force("link")
+      .links(graph.links);
+
+  function ticked() {
+
+    node
+        .attr("transform", function(d) {
+          return "translate(" + (d.x+200) + "," + (d.y+200) + ")";
+        });
+
+    link
+        .attr("x1", function(d) { return d.source.x ; })
+        .attr("y1", function(d) { return d.source.y ; })
+        .attr("x2", function(d) { return d.target.x ; })
+        .attr("y2", function(d) { return d.target.y ; });
+
+    
+  }
+
+
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+}
+
+function wash(detailRect, detailG, svg){
+  console.log("Wash called")
+  detailRect.style('opacity', 0.0); 
+  detailG.selectAll('circle').remove(); 
+  detailG.selectAll('.nodes').remove(); 
+  detailG.selectAll('line').remove();
+  svg.selectAll(".arrowline").transition(duration).style("opacity", 0.0);
+}
+
+function update(source) {
+
+  // Assigns the x and y position for the nodes
+  var treeData = treemap(root);
+
+  // Compute the new tree layout.
+  var nodes = treeData.descendants(),
+      links = treeData.descendants().slice(1);
+
+  // Normalize for fixed-depth.
+  nodes.forEach(function(d){ d.y = d.depth * 180});
+
+  //  ***************** Detail view  ***************************
+
+  var detailG = svg.append('g')
+      .attr("transform", function(b) { 
+                return "translate(700,700)";});
+  var detailRect = detailG.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', 450)
+        .attr('height',350)
+        .style('fill','white')
+        .style('stroke', 'black')
+        .style('opacity',0.0);
+
+       svg.append("line")
+              //.attr("class", "arrowline")
+              .attr('stroke', 'blue')
+              .style("opacity", 0.0);
+         
+
+  // ****************** Nodes section ***************************
+
+  // Update the nodes...
+  var node = svg.selectAll('g.node')
+      .data(nodes, function(d) {return d.id || (d.id = ++i); });
+
+  // Enter any new modes at the parent's previous position.
+  var nodeEnter = node.enter().append('g')
+      .attr('class', 'node')
+      .attr("transform", function(d) {
+        return "translate(" + source.y0 + "," + source.x0 + ")";
+    })
+    .on('click', click);
+
+  // Add Circle for the nodes
+  nodeEnter.append('circle')
+      .attr('class', 'node')
+      .attr('r', 1e-6)
+      .style("fill", function(d) {
+          var col = d._children ? "lightsteelblue" : "#fff";          
+          if(d.data.dataType){
+                    var idx = typeArr.indexOf(d.data.dataType);
+                    col = colors(idx);
+                    //console.log(d.data.dataType);
+                    //console.log(col);
+                  }
+          return col;
+      })
+      .style("stroke", function(d){
+        if(d.data.dataType)
+          return "grey";
+      })
+      .style("stroke-width", function(d){
+        if(d.data.dataType){
+          var graph = buildFieldGraph(d.data.name);
+          return graph['nodes'].length > 2 ? graph['nodes'].length*0.6 : 0.1;
+        }
+        return 0.5;
+      })
+      .on("mouseover", function(d){ 
+        svg.clicked = false;                      // maintaing the default state and washing prev content
+
+        //wash()
+        wash(detailRect, detailG, svg)
+
+        svg.selectAll("path").sort(function (a, b) { // select the parent and sort the path's
+                if (a.id != d.id) return -1;               // a is not the hovered element, send "a" to the back
+                else return 1;                             // a is the hovered element, bring "a" to the front
+            });
+        console.log(d.y);
+        console.log(d.x);
+        console.log("Path is:")
+        console.log(svg.selectAll("path"));
+        if(d.data.dataType){
+          detailG.transition()
+            .duration(duration)
+            .attr("transform", function(b) { 
+                return "translate(" + (d.y + 200) + "," + (d.x-70) + ")";
+             });
+          
+         
+          detailRect.style('opacity', 1.0); 
+          detailRect.style('fill','#DEF0F7'); 
+          var graph = buildFieldGraph(d.data.name);
+          appendGraph(detailG, graph, d.data.dataType);
+
+         svg.selectAll(".arrowline").transition(duration)
+              .style("opacity", 0.9)
+              .style("stroke", "grey")
+              .style("stroke-width", 3)
+              .attr("x1", d.y)
+              .attr("y1", d.x)
+              .attr("x2", d.y+200)
+              .attr("y2", d.x-60);
+
+           
+        }
+
+
+      })
+      .on("mouseout", function(d){
+        console.log(svg.clicked);
+        if(!svg.clicked){
+          console.log(svg.clicked);
+          wash(detailRect, detailG, svg)
+        //   detailRect.style('opacity', 0.0); 
+        //   detailG.selectAll('circle').remove(); 
+        //  detailG.selectAll('.nodes').remove(); 
+        //  detailG.selectAll('line').remove();
+        //  svg.selectAll(".arrowline").transition(duration).style("opacity", 0.0);
+         
+        }
+            
+      })
+
+      .on("click", function(d){
+          //detailRect.style('opacity', 0.0); 
+          if(svg.clicked) {
+            console.log(svg.clicked);
+            console.log("clicked");
+            svg.clicked = false;
+            wash(detailRect, detailG, svg)
+          }
+          else {
+            svg.clicked = true;
+          }
+          
+           
+      });
+
+  // Add labels for the nodes
+  nodeEnter.append('text')
+      .attr("dy", ".35em")
+      .attr("x", function(d) {
+          return d.children || d._children ? -13 : 13;
+      })
+      .attr("text-anchor", function(d) {
+          return d.children || d._children ? "end" : "start";
+      })
+      .text(function(d) { return d.data.name; });
+
+  // UPDATE
+  var nodeUpdate = nodeEnter.merge(node);
+
+  // Transition to the proper position for the node
+  nodeUpdate.transition()
+    .duration(duration)
+    .attr("transform", function(d) { 
+        return "translate(" + d.y + "," + d.x + ")";
+     });
+
+  // Update the node attributes and style
+  nodeUpdate.select('circle.node')
+    .attr('r', 10)
+    .style("fill", function(d) {
+       var col = d._children ? "lightsteelblue" : "#fff";          
+          if(d.data.dataType){
+                    var idx = typeArr.indexOf(d.data.dataType);
+                    col = colors(idx);
+                    
+                    //console.log(d.data.dataType);
+                    //console.log(col);
+                  }
+          return col;
+    })
+    .attr('cursor', 'pointer');
+
+
+  // Remove any exiting nodes
+  var nodeExit = node.exit().transition()
+      .duration(duration)
+      .attr("transform", function(d) {
+          return "translate(" + source.y + "," + source.x + ")";
+      })
+      .remove();
+
+  // On exit reduce the node circles size to 0
+  nodeExit.select('circle')
+    .attr('r', 1e-6);
+
+  // On exit reduce the opacity of text labels
+  nodeExit.select('text')
+    .style('fill-opacity', 1e-6);
+
+  // ****************** links section ***************************
+
+  // Update the links...
+  var link = svg.selectAll('path.link')
+      .data(links, function(d) { return d.id; });
+
+  // Enter any new links at the parent's previous position.
+  var linkEnter = link.enter().insert('path', "g")
+      .attr("class", "link")
+      .attr('d', function(d){
+        var o = {x: source.x0+10, y: source.y0}
+        return diagonal(o, o)
+      });
+
+  // UPDATE
+  var linkUpdate = linkEnter.merge(link);
+
+  // Transition back to the parent element position
+  linkUpdate.transition()
+      .duration(duration)
+      .attr('d', function(d){ return diagonal(d, d.parent) });
+
+  // Remove any exiting links
+  var linkExit = link.exit().transition()
+      .duration(duration)
+      .attr('d', function(d) {
+        var o = {x: source.x, y: source.y}
+        return diagonal(o, o)
+      })
+      .remove();
+
+  // Store the old positions for transition.
+  nodes.forEach(function(d){
+    d.x0 = d.x;
+    d.y0 = d.y;
+  });
+
+  // Creates a curved (diagonal) path from parent to the child nodes
+  function diagonal(s, d) {
+
+    path = `M ${s.y} ${s.x}
+            C ${(s.y + d.y) / 2} ${s.x},
+              ${(s.y + d.y) / 2} ${d.x},
+              ${d.y} ${d.x}`
+
+    return path
+  }
+
+  // Toggle children on click.
+  function click(d) {
+    if (d.children) {
+        d._children = d.children;
+        d.children = null;
+      } else {
+        d.children = d._children;
+        d._children = null;
+      }
+    update(d);
+  }
+}
+
+</script>
+</body>

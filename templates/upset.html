@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!-- <style>
+
+</style> -->
+  <link rel="stylesheet" href="../static/css/w3.css">
+  <link rel="stylesheet" href="../static/css/w3-theme-black.css">
+  <link rel="stylesheet" href="../static/css/page2.css">
+</head>
+
+<body>
+  <script src="https://unpkg.com/@upsetjs/bundle"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+  <!-- <script type="text/javascript" src="data.js"></script>  -->
+
+  <script>
+
+    d3.json("../static/data/data_Usman.json", function (data) {
+
+      var result = [];
+      var res = {};
+      var fields = [];
+      var field = [];
+      var persons = [];
+      var person = [];
+      var start = 1;
+      var tmpFields = Object.keys(data[0]);
+      console.log(tmpFields)
+      // this loop is iterating through the data
+      // p_index is the row number can be called as person index
+      var key_names = ['Musculoskeletal finding',
+        'Finding of upper trunk', 'General finding of observation of patient', 'Clinical finding',
+        'Inflammatory disorder', 'Integumentary system finding', 'Measurement finding',
+        'General finding of soft tissue', 'Finding of limb structure', 'Abdominal organ finding',
+        'Cognitive function finding', 'Disorder of abdomen', 'Respiratory finding',
+        'Sensory nervous system finding', 'Neurological lesion'];
+      
+       /* var key_names = ['Finding of upper trunk', 'General finding of soft tissue', 'Integumentary system finding', 
+        'Finding of head and neck region', 'Inflammatory disorder', 'Musculoskeletal finding', 
+        'General finding of observation of patient', 'Abdominal organ finding', 'Clinical finding', 'Measurement finding', 
+        'Cognitive function finding', 'Finding of limb structure', 'Sensory nervous system finding', 'Disorder due to infection',
+        'Disorder of abdomen']*/
+
+      var our_data = [
+        { name: 'Finding of head and neck region', elems: [] }
+      ];
+      var key_count = 0;
+      // initializing the objects
+      key_names.forEach(function (k_name) {
+        console.log(k_name);
+        key_count++;
+        var tmp = {};
+        tmp['name'] = k_name;
+        tmp['elems'] = [];
+        our_data.push(tmp);
+      });
+      console.log(our_data);
+     
+      for (var i = 0; i < data.length; i++)
+      {
+        var keys = Object.keys(data[i]);
+        var values = Object.values(data[i]);
+        console.log(keys, values);
+       
+        for(var iter = 0; iter < keys.length; iter++)
+        {
+             console.log(iter, keys[iter], 'here')
+              var key = keys[iter]; var val = values[iter];
+              if(key.includes('_desc')){
+                console.log(key, 'True');
+              }
+              if (key !== 'person_id' && key !== 'age' && key !== '0' && key !== 'gender' && key !== 'other')
+              {
+                //debugger;
+                if (val !== "0"){
+                  var entry = our_data.find(elem => elem.name === key);
+                  entry['elems'].push(i); // i represents record number
+                  
+                }
+                
+
+              }
+          }
+      }
+      //console.log(dict);
+
+
+      var data1 = [
+        { name: 'Condition 1', elems: [0, 1, 2] },
+        { name: 'Condition 2', elems: [1, 2, 3] },
+        { name: 'Condition 3', elems: [0, 2, 4] },
+      ];
+
+      console.log(our_data);
+      console.time('UpsetTimer')
+      const sets = UpSetJS.asSets(our_data);
+      UpSetJS.render(document.body, {
+        sets: sets,
+        width: 1800,
+        height: 900,
+        color: 'orange',
+        //numbers_angles = 30,
+      });
+      console.timeEnd('UpsetTimer')
+
+    });
+
+
+  </script>
+</body>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <title>Parallel Coordinates Demo </title>
+    <link rel="stylesheet" type="text/css" href="../static/css/parallel.css" />
+  </head>
+  <body>
+  
+  <div id="header">
+    <h1>Parallel Coordinates Demo </h1>
+    <button title="Zoom in on selected data" id="keep-data" disabled="disabled">Keep</button>
+    <button title="Remove selected data" id="exclude-data" disabled="disabled">Exclude</button>
+    <button title="Export data as CSV" id="export-data">Export</button>
+    <div class="controls">
+      <strong id="rendered-count"></strong>/<strong id="selected-count"></strong><!--<strong id="data-count"></strong>-->
+      <div class="fillbar"><div id="selected-bar"><div id="rendered-bar">&nbsp;</div></div></div>
+      Lines at <strong id="opacity"></strong> opacity.
+      <span class="settings">
+        <button id="hide-ticks">Hide Ticks</button>
+        <button id="show-ticks" disabled="disabled">Show Ticks</button>
+        <button id="dark-theme">Dark</button>
+        <button id="light-theme" disabled="disabled">Light</button>
+      </span>
+    </div>
+    <div style="clear:both;"></div>
+  </div>  
+  
+  
+  <div id="chart" >
+    <canvas id="background" ></canvas>
+    <canvas id="foreground" ></canvas>
+    <canvas id="highlight" ></canvas>
+    <svg id="svg1" ></svg>
+  </div>
+
+
+  <!-- <div id="summary">
+    <canvas id="sforeground" width="10" height="10" style="padding: 5px 0px 5px;"></canvas>
+           <svg id="svg2"></svg>
+        </div> -->
+
+  <div id="wrap">
+
+    <div class="third" id="controls">
+      <div class="bright">
+
+        <h3>What is this?</h3>
+       
+        
+        <br/>
+      </div>
+
+        <div class="bright">
+        <h3>Contact</h3>
+          <p>
+            Data and experiment: <a href="https://pubs.broadinstitute.org/diabimmune/three-country-cohort"> YHCR Care Record </a>
+		</p>
+		
+		</div>
+		
+		      <div class="little-box">
+        <h3>Credits &amp; License</h3>
+   
+       <div class="bright">
+   
+          <p>
+          Visualization: Smriti Kotiyal (email: S.Kotiyal. at. bradford.ac.uk) 
+          </p>
+</div>
+
+          <p><p>
+        
+           <font size="1.0">
+          Vis adapted from <a href="http://bl.ocks.org/3150059">a program </a> from Kai Chang.<br/>
+          </font>
+
+          <p>
+        </p>
+      </div>
+	  
+    </div>
+    <div  class="third">
+      <small>
+        <!--Last rendered <strong id="render-speed"></strong> lines-->
+      </small>
+	  	<p><br/>
+		
+		</p>
+
+      <h3>Population</h3>
+      <p id="legend">
+      </p>
+	  
+	  <div class="bright">
+	  <br/>
+        <h3>Interaction</h3>
+        <p>
+	
+		</p>
+		<p>
+		  <strong><a href="http://eagereyes.org/techniques/parallel-coordinates#brushing" target="_blank">Brush</a></strong>: Click and drag vertically along an axis.<br/>
+          <strong>Remove Brush</strong>: Tap the axis background.<br/>
+          <strong>Reorder Axes</strong>: Drag a label horizontally.<br/>
+          <strong>Remove Axis</strong>: Drag axis label to the edge of the screen.<br/>
+		  <br/>
+		  <strong>Hide/Show Therapy</strong>: Click on its name (above).<br/>
+          <strong>Show Member Pattern</strong>: Hover over member number (right).<br/>
+		  <strong>Export Selection as Table</strong>: Click the Export button to open a new browser tab with the raw data in csv format. 
+        </p>
+      </div>
+
+	  
+    </div>
+    <div class="third">
+      <h3>All Samples <br/><input type="text" size="36" id="search" placeholder="Search by member number"></input></h3>
+	  <p>
+	  If your selection has less than 100 members, all will be shown. Otherwise, a random sample of 100 members from the selection will be shown. A table showing all data in your selection is available via the <i>Export</i> button.
+	  </p>
+      <p id="clinic-list">
+        
+      </p>
+    </div>
+  </div>
+
+   
+  </body>
+  
+  <!-- jQuery.support.cors = true;
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>-->
+  <script src="../static/js/jquery-1.10.2.js" type="text/javascript"></script>
+  <script src="../static/js/d3.min.js"></script>
+  <script src="../static/js/underscore.js"></script>
+  <script src="../static/js/paral_upper.js"></script>
+
+</html>
